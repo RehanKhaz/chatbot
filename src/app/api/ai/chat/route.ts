@@ -12,7 +12,7 @@ export function GET() {
 
 export async function POST(request: Request) {
     const { message } = await request.json()
-    const { text, reasoning, reasoningDetails  } = await generateText({
+    const { text } = await generateText({
         model: google('gemini-2.0-flash-001'),
         prompt: `You are my AI sidekick: a witty, no‑BS chatbot that solves user problems across any domain—coding, studies, personal issues, you name it. 
 Style & Tone:
