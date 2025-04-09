@@ -1,103 +1,154 @@
-import Image from "next/image";
+'use client'
+import { ArrowRight, CopyCheck, Edit2Icon } from "lucide-react"
+import Image from "next/image"
+import ReactMarkdown from 'react-markdown'
+import { FormEvent, useEffect, useRef, useState } from "react"
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+interface Chat {
+  sender: 'user' | 'ai'
+  message: string
 }
+
+const Page = () => {
+  const [userQuestion, setUserQuestion] = useState('')
+  const [chats, setChats] = useState<Chat[]>([])
+
+  const handleChat = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!userQuestion.trim()) {
+      alert('Please write your question first.')
+      return
+    }
+
+    setUserQuestion('')
+
+    setChats(prev => [
+      ...prev,
+      { sender: 'user', message: userQuestion }
+    ])
+
+    try {
+      const res = await fetch('/api/ai/chat/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userQuestion })
+      })
+
+      if (!res.ok) {
+        console.error('API error', res.statusText)
+        return
+      }
+
+      const result = await res.json() as { text: string }
+
+      setChats(prev => [
+        ...prev,
+        { sender: 'ai', message: result.text }
+      ])
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  const chatViewRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    chatViewRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chats.length, chats])
+
+  const [hovered, setHovered] = useState<number | null>()
+
+  const copyChat = async (chat: string) => {
+    alert('Text copied Successfully.')
+    await navigator.clipboard.writeText(chat)
+  }
+
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  const editChat = (chat: string) => {
+    setUserQuestion(chat)
+    inputRef?.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const newChat = () => {
+    setChats([])
+  }
+
+
+  return (
+    <div className="bg-black/90 overflow-x-hidden min-h-[90vh] flex items-center justify-center py-4">
+      <div className="w-[80vw]  max-md:w-[90vw] flex flex-col gap-4">
+        <div className="flex items-center justify-center gap-3 flex-col">
+          <h1 className="font-semibold text-3xl max-sm:text-[1.7em] text-center tracking-wide  text-white"> Hi! I am Rehance, An AI Agent.</h1>
+          <h3 className="font-medium text-white tracking-wider max-sm:text-[1.1em] text-lg">
+            How can I assist you today ?
+          </h3>
+        </div>
+        <div className="flex flex-col gap-4  min-h-[1vh]">
+          {chats.map((chat, i) => (
+            <div
+              key={i}
+              ref={chatViewRef}
+              onPointerEnter={() => setHovered(i)}
+              onPointerMove={() => setHovered(i)}
+              onPointerLeave={() => setHovered(null)}
+              className={`flex items-start text-white ${chat.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+
+              <div
+                className="flex gap-2 relative bg-white/10 px-3 max-sm:px-1.5 py-6 max-sm:pt-2 max-sm:pb-6 rounded-xl">
+                {hovered == i &&
+                  <div className="flex absolute bottom-[2px] right-2  items-center gap-1">
+                    <div onClick={() => copyChat(chat.message)} className="transition-all ease-in-out delay-200 duration-500  cursor-pointer bg-black/30 text-white flex items-center gap-1 rounded-2xl px-3 py-1 text-xs">
+                      <CopyCheck className="size-4" />
+                      Copy
+                    </div>
+                    <div onClick={() => editChat(chat.message)} className="transition-all ease-in-out delay-200 duration-500  cursor-pointer bg-black/30 text-white flex items-center gap-1 rounded-2xl px-3 py-1 text-xs">
+                      <Edit2Icon className="size-4" />
+                      Edit
+                    </div>
+                  </div>
+                }
+                {chat.sender == 'user' ? <Image
+                  src="/mypic.webp"
+                  width={32}
+                  height={32}
+                  alt="avatar"
+                  className="rounded-full size-[2em]"
+                /> : <p className="text-3xl max-md:text-xl">
+                  🤖</p>}
+                <div className={`flex ${chat.sender == 'user' ? 'line-clamp-2 overflow-hidden' : 'overflow-x-auto w-full '}  flex-col`}>
+                  <ReactMarkdown>
+                    {chat.message}
+                  </ReactMarkdown>
+                </div>
+
+              </div>
+            </div>
+          ))}
+        </div>
+        <form onSubmit={handleChat} className="flex flex-col items-center justify-center w-full gap-2">
+          <div className="flex w-full gap-2">
+
+            <input
+              ref={inputRef}
+              type="text"
+              value={userQuestion}
+              onChange={e => setUserQuestion(e.target.value)}
+              placeholder="Write your question…"
+              className="flex-1 bg-black/30 text-white px-4 py-2 rounded-xl outline-none"
+            />
+            <button type="submit" className="bg-white p-3 rounded-full">
+              <ArrowRight />
+            </button>
+          </div>
+          <button onClick={() => newChat()} disabled={chats.length == 0} className={`px-4 ${chats.length == 0 ? 'disabled:opacity-80 disable: cursor-not-allowed' : 'cursor-pointer' }  py-2 text-[1em] font-semibold tracking-wide rounded-2xl bg-white/20 text-white`}>
+            New Chat
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+export default Page
